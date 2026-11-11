@@ -1,0 +1,13 @@
+# Code Owners untuk Veine Pulse
+# Setiap perubahan / Pull Request wajib direview oleh owner yang terdaftar.
+
+* @kiokyky
+
+# Area kritikal: kriptografi Zero-Knowledge, RPG Engine, Database & API Sync
+/src/crypto/ @kiokyky
+/src/engine/ @kiokyky
+/src/db/ @kiokyky
+/src/api/ @kiokyky
+/tests/ @kiokyky
+/.github/ @kiokyky
+/.githooks/ @kiokyky
