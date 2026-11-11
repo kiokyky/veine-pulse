@@ -18,12 +18,3 @@ declare module 'node:test' {
 declare module 'node:crypto' {
   export function randomBytes(size: number): Uint8Array & { toString(encoding: 'hex'): string };
 }
-
-declare module 'node:module' {
-  const Module: {
-    _load: (request: string, parent: unknown, isMain: boolean) => unknown;
-  };
-  export default Module;
-}
-
-declare function require(id: string): unknown;

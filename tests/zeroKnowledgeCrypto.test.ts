@@ -1,6 +1,5 @@
 import * as assert from 'node:assert/strict';
 import * as nodeCrypto from 'node:crypto';
-import Module from 'node:module';
 import test from 'node:test';
 import {
   aes256GcmDecrypt,
@@ -9,45 +8,17 @@ import {
   formatKeyFingerprint,
   PBKDF2_ITERATIONS,
 } from '../src/crypto/cryptoPrimitives';
-
-// ---------------------------------------------------------------------------
-// Mock Expo / React Native native modules so zeroKnowledgeCrypto.ts runs in Node
-// ---------------------------------------------------------------------------
-const secureStoreMap = new Map<string, string>();
-const originalLoad = Module._load;
-
-Module._load = function (request: string, parent: unknown, isMain: boolean) {
-  if (request === 'react-native') {
-    return { Platform: { OS: 'ios' } };
-  }
-  if (request === 'expo-crypto') {
-    return {
-      getRandomBytes: (len: number) => new Uint8Array(nodeCrypto.randomBytes(len)),
-    };
-  }
-  if (request === 'expo-secure-store') {
-    return {
-      setItemAsync: async (k: string, v: string) => {
-        secureStoreMap.set(k, v);
-      },
-      getItemAsync: async (k: string) => secureStoreMap.get(k) ?? null,
-      deleteItemAsync: async (k: string) => {
-        secureStoreMap.delete(k);
-      },
-    };
-  }
-  return originalLoad.call(this, request, parent, isMain);
-};
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const zk = require('../src/crypto/zeroKnowledgeCrypto') as typeof import('../src/crypto/zeroKnowledgeCrypto');
+import * as zk from '../src/crypto/zeroKnowledgeCrypto';
 
 test('PBKDF2_ITERATIONS is 100000 and deriveKeysFromPassword isolates authHash from kek', async () => {
   assert.equal(PBKDF2_ITERATIONS, 100000);
   const salt = '0123456789abcdef0123456789abcdef';
   const k1 = await deriveKeysFromPassword('rahasia-veine-pulse', salt);
   const k2 = await deriveKeysFromPassword('rahasia-veine-pulse', salt);
-  const kDiffSalt = await deriveKeysFromPassword('rahasia-veine-pulse', 'fedcba9876543210fedcba9876543210');
+  const kDiffSalt = await deriveKeysFromPassword(
+    'rahasia-veine-pulse',
+    'fedcba9876543210fedcba9876543210'
+  );
 
   assert.equal(k1.authHashHex.length, 64);
   assert.equal(k1.kekHex.length, 64);
@@ -89,7 +60,6 @@ test('formatKeyFingerprint produces ZK-XXXX-XXXX-XXXX or LOCKED', () => {
 });
 
 test('Zero-Knowledge Vault lifecycle: create, encrypt/decrypt, lock, biometric unlock, wrong password, rotate KEK, wipe', async () => {
-  secureStoreMap.clear();
   await zk.wipeVaultFromDevice();
   assert.equal(zk.isVaultUnlocked(), false);
   assert.equal(await zk.getStoredVaultMeta(), null);
