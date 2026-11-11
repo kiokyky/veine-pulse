@@ -79,35 +79,35 @@ function makeQuest(overrides: Partial<FinancialQuest> = {}): FinancialQuest {
 }
 
 test('resolveTitleByLevel maps RPG level brackets accurately', () => {
-  assert.equal(resolveTitleByLevel(1), 'Rookie Cuan Crafter');
-  assert.equal(resolveTitleByLevel(2), 'Novice Spender');
-  assert.equal(resolveTitleByLevel(5), 'Tactical Saver');
-  assert.equal(resolveTitleByLevel(10), 'Cashflow Ranger');
-  assert.equal(resolveTitleByLevel(24), 'Cashflow Ranger');
-  assert.equal(resolveTitleByLevel(25), 'Sovereign of Cuan');
+  assert.strictEqual(resolveTitleByLevel(1), 'Rookie Cuan Crafter');
+  assert.strictEqual(resolveTitleByLevel(2), 'Novice Spender');
+  assert.strictEqual(resolveTitleByLevel(5), 'Tactical Saver');
+  assert.strictEqual(resolveTitleByLevel(10), 'Cashflow Ranger');
+  assert.strictEqual(resolveTitleByLevel(24), 'Cashflow Ranger');
+  assert.strictEqual(resolveTitleByLevel(25), 'Sovereign of Cuan');
 });
 
 test('applyXpGain cascades across multiple levels', () => {
   const res = applyXpGain(1, 400, calculateNextLevelXp(1), 900);
   // Lv1 needs 500 -> remaining 800, Lv2 needs 750 -> remaining 50, Lv3 needs 1000
-  assert.equal(res.level, 3);
-  assert.equal(res.currentXp, 50);
-  assert.equal(res.nextLevelXp, 1000);
-  assert.equal(res.title, 'Novice Spender');
-  assert.equal(res.leveledUp, true);
+  assert.strictEqual(res.level, 3);
+  assert.strictEqual(res.currentXp, 50);
+  assert.strictEqual(res.nextLevelXp, 1000);
+  assert.strictEqual(res.title, 'Novice Spender');
+  assert.strictEqual(res.leveledUp, true);
 });
 
 test('overdrive multiplier activates at 7+ day streak', () => {
-  assert.equal(isOverdriveActive(6), false);
-  assert.equal(isOverdriveActive(7), true);
-  assert.equal(applyStreakMultiplier(15, 6), 15);
-  assert.equal(applyStreakMultiplier(15, 7), 23); // round(15 * 1.5)
+  assert.strictEqual(isOverdriveActive(6), false);
+  assert.strictEqual(isOverdriveActive(7), true);
+  assert.strictEqual(applyStreakMultiplier(15, 6), 15);
+  assert.strictEqual(applyStreakMultiplier(15, 7), 23); // round(15 * 1.5)
 });
 
 test('diffDaysBetweenDates computes exact calendar day delta', () => {
-  assert.equal(diffDaysBetweenDates('2026-11-10', '2026-11-11'), 1);
-  assert.equal(diffDaysBetweenDates('2026-11-09', '2026-11-11'), 2);
-  assert.equal(diffDaysBetweenDates(null, '2026-11-11'), 999);
+  assert.strictEqual(diffDaysBetweenDates('2026-11-10', '2026-11-11'), 1);
+  assert.strictEqual(diffDaysBetweenDates('2026-11-09', '2026-11-11'), 2);
+  assert.strictEqual(diffDaysBetweenDates(null, '2026-11-11'), 999);
 });
 
 test('computeHudMetrics calculates HP %, Shield %, and Safe Daily Spend for current month', () => {
@@ -126,15 +126,15 @@ test('computeHudMetrics calculates HP %, Shield %, and Safe Daily Spend for curr
   ];
 
   const m = computeHudMetrics(stats, txs, now);
-  assert.equal(m.totalMonthlyExpense, 600000);
-  assert.equal(m.totalMonthlySaving, 300000);
-  assert.equal(m.remainingMonthlyBudget, 2400000);
-  assert.equal(m.daysLeftInMonth, 20);
-  assert.equal(m.safeDailySpend, 120000);
+  assert.strictEqual(m.totalMonthlyExpense, 600000);
+  assert.strictEqual(m.totalMonthlySaving, 300000);
+  assert.strictEqual(m.remainingMonthlyBudget, 2400000);
+  assert.strictEqual(m.daysLeftInMonth, 20);
+  assert.strictEqual(m.safeDailySpend, 120000);
   // 2.4M / 3M = 80%, minus 10% impulse penalty = 70%
-  assert.equal(m.walletHpPercent, 70);
+  assert.strictEqual(m.walletHpPercent, 70);
   // (200k + 300k) / 1M = 50%
-  assert.equal(m.shieldPercent, 50);
+  assert.strictEqual(m.shieldPercent, 50);
 });
 
 test('evaluateTransactionRpgOutcome enforces daily 3x XP cap and 1.5x overdrive', () => {
@@ -153,9 +153,9 @@ test('evaluateTransactionRpgOutcome enforces daily 3x XP cap and 1.5x overdrive'
     amount: 25000,
     todayStr: '2026-11-11',
   });
-  assert.equal(third.newDailyTxCount, 3);
-  assert.equal(third.xpEarned, 23);
-  assert.equal(third.overdriveApplied, true);
+  assert.strictEqual(third.newDailyTxCount, 3);
+  assert.strictEqual(third.xpEarned, 23);
+  assert.strictEqual(third.overdriveApplied, true);
 
   // 4th log today -> anti-spam cap gives 0 XP
   const fourth = evaluateTransactionRpgOutcome({
@@ -165,8 +165,8 @@ test('evaluateTransactionRpgOutcome enforces daily 3x XP cap and 1.5x overdrive'
     amount: 25000,
     todayStr: '2026-11-11',
   });
-  assert.equal(fourth.newDailyTxCount, 4);
-  assert.equal(fourth.xpEarned, 0);
+  assert.strictEqual(fourth.newDailyTxCount, 4);
+  assert.strictEqual(fourth.xpEarned, 0);
 });
 
 test('evaluateTransactionRpgOutcome deals -10% Critical Hit on IMPULSE expense (capped at 60%)', () => {
@@ -177,10 +177,10 @@ test('evaluateTransactionRpgOutcome deals -10% Critical Hit on IMPULSE expense (
     amount: 80000,
     todayStr: '2026-11-11',
   });
-  assert.equal(res.isCriticalHit, true);
-  assert.equal(res.hpDamageDealt, 10);
-  assert.equal(res.newImpulsePenaltyPercent, 60);
-  assert.equal(res.newStreak, 3);
+  assert.strictEqual(res.isCriticalHit, true);
+  assert.strictEqual(res.hpDamageDealt, 10);
+  assert.strictEqual(res.newImpulsePenaltyPercent, 60);
+  assert.strictEqual(res.newStreak, 3);
 });
 
 test('evaluateTransactionRpgOutcome gives +35 base XP for SAVING and resets broken streak', () => {
@@ -191,9 +191,9 @@ test('evaluateTransactionRpgOutcome gives +35 base XP for SAVING and resets brok
     amount: 100000,
     todayStr: '2026-11-11',
   });
-  assert.equal(res.newStreak, 1);
-  assert.equal(res.newLongestStreak, 10);
-  assert.equal(res.xpEarned, 35); // 15 + 20
+  assert.strictEqual(res.newStreak, 1);
+  assert.strictEqual(res.newLongestStreak, 10);
+  assert.strictEqual(res.xpEarned, 35); // 15 + 20
 });
 
 test('planRollover awards XP for expired completed quests, resets streak/monthly penalty, preserves saving goals', () => {
@@ -216,26 +216,26 @@ test('planRollover awards XP for expired completed quests, resets streak/monthly
   const now = new Date(2026, 10, 11); // Wednesday 2026-11-11 -> Sunday is 2026-11-15
   const plan = planRollover(stats, quests, now);
 
-  assert.equal(plan.changed, true);
-  assert.equal(plan.streakBroken, true);
-  assert.equal(plan.monthReset, true);
-  assert.equal(plan.statsPatch.current_streak, 0);
-  assert.equal(plan.statsPatch.impulse_penalty_percent, 0);
-  assert.equal(plan.statsPatch.daily_tx_xp_count, 0);
-  assert.equal(plan.xpAwarded, 165); // 15 + 150
-  assert.equal(plan.statsPatch.level, 2); // 480 + 165 = 645 -> Lv2 with 145 XP
-  assert.equal(plan.statsPatch.current_xp, 145);
-  assert.equal(plan.questResets.length, 3);
-  assert.equal(plan.questResets[0].new_expires_at, '2026-11-11T23:59:59');
-  assert.equal(plan.questResets[2].new_expires_at, `${getEndOfWeekDateString(now)}T23:59:59`);
+  assert.strictEqual(plan.changed, true);
+  assert.strictEqual(plan.streakBroken, true);
+  assert.strictEqual(plan.monthReset, true);
+  assert.strictEqual(plan.statsPatch.current_streak, 0);
+  assert.strictEqual(plan.statsPatch.impulse_penalty_percent, 0);
+  assert.strictEqual(plan.statsPatch.daily_tx_xp_count, 0);
+  assert.strictEqual(plan.xpAwarded, 165); // 15 + 150
+  assert.strictEqual(plan.statsPatch.level, 2); // 480 + 165 = 645 -> Lv2 with 145 XP
+  assert.strictEqual(plan.statsPatch.current_xp, 145);
+  assert.strictEqual(plan.questResets.length, 3);
+  assert.strictEqual(plan.questResets[0].new_expires_at, '2026-11-11T23:59:59');
+  assert.strictEqual(plan.questResets[2].new_expires_at, `${getEndOfWeekDateString(now)}T23:59:59`);
 });
 
 test('evaluateMonthEndBossStatus reflects HP and completed quests', () => {
   const defeated = evaluateMonthEndBossStatus(95, 10, [makeQuest({ is_completed: true })]);
-  assert.equal(defeated.isBossDefeated, true);
+  assert.strictEqual(defeated.isBossDefeated, true);
 
   const zeroHp = evaluateMonthEndBossStatus(0, 5, []);
-  assert.equal(zeroHp.isBossDefeated, false);
+  assert.strictEqual(zeroHp.isBossDefeated, false);
   assert.match(zeroHp.statusText, /CRITICAL DEFEAT WARNING/);
 });
 
