@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Veine Pulse",
+    "slug": "veine-pulse",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "scheme": "veinepulse",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#070B10"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "id.my.veinestudio.pulse",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Gunakan FaceID untuk membuka akses Vault & kunci enkripsi Veine Pulse."
+      }
+    },
+    "android": {
+      "package": "id.my.veinestudio.pulse",
+      "adaptiveIcon": {
+        "backgroundColor": "#070B10"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Izinkan Veine Pulse menggunakan Face ID untuk mengamankan brankas finansialmu."
+        }
+      ],
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-asset"
+    ]
+  }
+}
