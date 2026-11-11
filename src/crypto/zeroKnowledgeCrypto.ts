@@ -1,11 +1,16 @@
-import { gcm } from '@noble/ciphers/aes';
-import { bytesToHex, hexToBytes, utf8ToBytes, bytesToUtf8 } from '@noble/ciphers/utils';
-import { pbkdf2Async } from '@noble/hashes/pbkdf2';
-import { hmac } from '@noble/hashes/hmac';
-import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/ciphers/utils';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import {
+  aes256GcmDecrypt,
+  aes256GcmEncryptWithIv,
+  deriveKeysFromPassword,
+  formatKeyFingerprint,
+  PBKDF2_ITERATIONS,
+} from './cryptoPrimitives';
+
+export { aes256GcmDecrypt, deriveKeysFromPassword, PBKDF2_ITERATIONS };
 
 /**
  * Storage keys.
@@ -18,13 +23,6 @@ const KEY_DEK_CACHE = 'veine_pulse_zk_dek_v3';
 const KEY_SALT = 'veine_pulse_zk_salt_v3';
 const KEY_WRAPPED_DEK = 'veine_pulse_zk_wrapped_dek_v3';
 const KEY_EMAIL = 'veine_pulse_zk_email_v3';
-
-const CIPHERTEXT_PREFIX = 'vp1'; // Veine Pulse E2EE Envelope v1
-/**
- * PBKDF2 iterations. Pure-JS PBKDF2 on Hermes is slow, so this is a trade-off between
- * brute-force resistance and unlock time. Must be identical on Mobile & Go Cuan Web.
- */
-export const PBKDF2_ITERATIONS = 100000;
 
 // In-memory DEK (cleared on lock). 32 bytes hex = 64 chars.
 let activeDekHex: string | null = null;
@@ -96,54 +94,10 @@ export function getRandomBytesHex(byteLength: number): string {
 }
 
 /**
- * Zero-Knowledge Key Derivation from Login Password + Salt (Bitwarden / 1Password pattern).
- * Produces two cryptographically isolated 256-bit keys:
- * 1. `authHashHex`: Can be sent to the Go/Gin backend as the login credential.
- * 2. `kekHex` (Key Encryption Key): NEVER leaves the client (Mobile or Go Cuan Web).
- *    Used strictly on the device to wrap/unwrap the random 256-bit `DEK`.
- */
-export async function deriveKeysFromPassword(
-  password: string,
-  kdfSaltHex: string
-): Promise<{ authHashHex: string; kekHex: string }> {
-  const masterKey = await pbkdf2Async(sha256, utf8ToBytes(password), hexToBytes(kdfSaltHex), {
-    c: PBKDF2_ITERATIONS,
-    dkLen: 32,
-  });
-
-  const authHashBytes = hmac(sha256, masterKey, utf8ToBytes('veine-pulse-auth-v2'));
-  const kekBytes = hmac(sha256, masterKey, utf8ToBytes('veine-pulse-kek-v2'));
-
-  return {
-    authHashHex: bytesToHex(authHashBytes),
-    kekHex: bytesToHex(kekBytes),
-  };
-}
-
-/**
  * Low-level AES-256-GCM encryption returning `vp1:<12-byte-iv-hex>:<ciphertext+authTag-hex>`
  */
 export function aes256GcmEncrypt(plaintextUtf8: string, keyHex: string): string {
-  const keyBytes = hexToBytes(keyHex);
-  const ivHex = getRandomBytesHex(12); // 96-bit standard GCM nonce
-  const ivBytes = hexToBytes(ivHex);
-  const cipher = gcm(keyBytes, ivBytes);
-  const encryptedBytes = cipher.encrypt(utf8ToBytes(plaintextUtf8));
-  return `${CIPHERTEXT_PREFIX}:${ivHex}:${bytesToHex(encryptedBytes)}`;
-}
-
-/**
- * Low-level AES-256-GCM authenticated decryption.
- * Throws if tampered with or if wrong key is provided.
- */
-export function aes256GcmDecrypt(envelope: string, keyHex: string): string {
-  const parts = envelope.split(':');
-  if (parts.length !== 3 || parts[0] !== CIPHERTEXT_PREFIX) {
-    throw new Error('Format ciphertext Veine Pulse tidak valid (bukan envelope vp1).');
-  }
-  const [, ivHex, cipherHex] = parts;
-  const cipher = gcm(hexToBytes(keyHex), hexToBytes(ivHex));
-  return bytesToUtf8(cipher.decrypt(hexToBytes(cipherHex)));
+  return aes256GcmEncryptWithIv(plaintextUtf8, keyHex, getRandomBytesHex(12));
 }
 
 /**
@@ -151,10 +105,7 @@ export function aes256GcmDecrypt(envelope: string, keyHex: string): string {
  * so the user can verify that Mobile and Go Cuan Web share the exact same key.
  */
 export function getKeyFingerprint(dekHex?: string): string {
-  const target = dekHex || activeDekHex || '';
-  if (!target) return 'LOCKED';
-  const digest = bytesToHex(sha256(utf8ToBytes(target))).toUpperCase();
-  return `ZK-${digest.slice(0, 4)}-${digest.slice(4, 8)}-${digest.slice(8, 12)}`;
+  return formatKeyFingerprint(dekHex || activeDekHex || '');
 }
 
 // ---------------------------------------------------------------------------
